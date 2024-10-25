@@ -1,0 +1,44 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["prismaSchemaFolder"]
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String              @id @default(auto()) @map("_id") @db.ObjectId
+  userName  String              @unique
+  password  String
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  quizzes   QuizParticipation[]
+}
+
+model Quiz {
+  id           String              @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  participants QuizParticipation[]
+}
+
+model QuizParticipation {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  quizId String @db.ObjectId
+  score  Int?
+
+  user User @relation(fields: [userId], references: [id])
+  quiz Quiz @relation(fields: [quizId], references: [id])
+
+  @@index([userId, quizId], name: "user_quiz_unique")
+}
