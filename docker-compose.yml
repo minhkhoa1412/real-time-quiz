@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+#   app:
+#     container_name: backend
+#     build:
+#       context: .
+#       dockerfile: Dockerfile
+#     env_file:
+#       - .env
+#     ports:
+#       - '3000:3000'
+#     volumes:
+#       - ./src:/usr/src/app/src
+# #      - ./node_modules:/usr/src/app/node_modules
+#     depends_on:
+#       - mongo1
+#       - mongo2
+#       - mongo3
+
+  mongo1:
+    image: mongo:5
+    container_name: mongo1_quiz
+    command: ["--replSet", "my-replica-set", "--bind_ip_all", "--port", "31001"]
+    volumes:
+      - ./data/mongo-1:/data/db
+    ports:
+      - "31001:31001"
+    healthcheck:
+      test: test $$(echo "rs.initiate({_id:'my-replica-set',members:[{_id:0,host:\"mongo1_quiz:31001\"},{_id:1,host:\"mongo2_quiz:31002\"},{_id:2,host:\"mongo3_quiz:31003\"}]}).ok || rs.status().ok" | mongo --port 31001 --quiet) -eq 1
+      interval: 10s
+      start_period: 30s
+
+  mongo2:
+    image: mongo:5
+    container_name: mongo2_quiz
+    command: ["--replSet", "my-replica-set", "--bind_ip_all", "--port", "31002"]
+    volumes:
+      - ./data/mongo-2:/data/db
+    ports:
+      - "31002:31002"
+
+  mongo3:
+    image: mongo:5
+    container_name: mongo3_quiz
+    command: ["--replSet", "my-replica-set", "--bind_ip_all", "--port", "31003"]
+    volumes:
+      - ./data/mongo-3:/data/db
+    ports:
+      - "31003:31003"
