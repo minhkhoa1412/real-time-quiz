@@ -14,6 +14,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum QuizParticipantStatus {
+  UNACTIVE
+  ACTIVE
+  COMPLETED
+}
+
+type QuizContent {
+  question  String
+  options   String[]
+  answer    String
+  createdAt DateTime @default(now())
+}
+
 model User {
   id        String              @id @default(auto()) @map("_id") @db.ObjectId
   userName  String              @unique
@@ -28,14 +41,16 @@ model Quiz {
   title        String
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
+  content      QuizContent[]
   participants QuizParticipation[]
 }
 
 model QuizParticipation {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
-  userId String @db.ObjectId
-  quizId String @db.ObjectId
-  score  Int?
+  id     String                @id @default(auto()) @map("_id") @db.ObjectId
+  userId String                @db.ObjectId
+  quizId String                @db.ObjectId
+  score  Int                   @default(0)
+  status QuizParticipantStatus @default(UNACTIVE)
 
   user User @relation(fields: [userId], references: [id])
   quiz Quiz @relation(fields: [quizId], references: [id])

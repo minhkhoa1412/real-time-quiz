@@ -1,10 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { QuizService } from '../services/quiz.service';
+import { REDIS_CLIENT } from '~/ultilies/constants';
+import Redis from 'ioredis';
 
 @Injectable()
 export class QuizListener {
-  constructor(private readonly quizService: QuizService) {}
+  constructor(
+    private readonly quizService: QuizService,
+    @Inject(REDIS_CLIENT) private readonly redis: Redis,
+  ) {}
 
   @OnEvent('score.updated')
   async handleScoreUpdatedEvent(payload: {
@@ -13,6 +18,11 @@ export class QuizListener {
     score: number;
   }) {
     const { userId, quizId, score } = payload;
-    await this.quizService.updateScore(userId, quizId, score);
+    try {
+      await this.quizService.updateScore(userId, quizId, score);
+      await this.redis.del(`score:${userId}:${quizId}`);
+    } catch (error: any) {
+      console.error("Failed to save score to DB:", error);
+    }
   }
 }

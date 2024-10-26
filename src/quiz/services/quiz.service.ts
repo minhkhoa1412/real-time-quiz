@@ -1,4 +1,5 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { QuizParticipantStatus } from '@prisma/client';
 import { PrismaService } from '~/prisma/services/prisma.service';
 
 @Injectable()
@@ -23,19 +24,36 @@ export class QuizService {
   }
 
   async addUserToQuiz(userId: string, quizId: string) {
-    const isJoined = await this.isJoinedParticipation(userId, quizId);
+    const participation = await this.findParticipation(userId, quizId);
 
-    if (isJoined) {
-      throw new HttpException(
-        'User already joined the quiz',
-        HttpStatus.BAD_REQUEST,
-      );
+    if (participation) {
+      return participation;
+      // return {
+      //   errorMessage: 'User already joined the quiz',
+      // };
     }
 
     return this.prismaService.quizParticipation.create({
       data: {
         user: { connect: { id: userId } },
         quiz: { connect: { id: quizId } },
+        status: QuizParticipantStatus.ACTIVE,
+      },
+    });
+  }
+
+  async completeTheQuiz(userId: string, quizId: string) {
+    const participation = await this.findParticipation(userId, quizId);
+    if (!participation) {
+      return {
+        errorMessage: 'User has not joined the quiz',
+      }
+    }
+
+    return this.prismaService.quizParticipation.update({
+      where: { id: participation.id },
+      data: {
+        status: QuizParticipantStatus.COMPLETED,
       },
     });
   }
@@ -66,7 +84,9 @@ export class QuizService {
     return { message: 'Score updated successfully', participation };
   }
 
-  async isJoinedParticipation(userId: string, quizId: string) {
+  async findParticipation(userId: string, quizId: string) {
+    console.log('ahihihi', userId)
+    
     const user = await this.prismaService.user.findUnique({
       where: { id: userId },
     });
@@ -77,12 +97,7 @@ export class QuizService {
       throw new HttpException('User or Quiz not found', HttpStatus.NOT_FOUND);
     }
 
-    const existingParticipation = await this.findParticipation(userId, quizId);
-    return !existingParticipation;
-  }
-
-  async findParticipation(userId: string, quizId: string) {
-    return this.prismaService.quizParticipation.findFirst({
+    return await this.prismaService.quizParticipation.findFirst({
       where: {
         userId,
         quizId,

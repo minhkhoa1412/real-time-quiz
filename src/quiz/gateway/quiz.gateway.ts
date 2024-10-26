@@ -60,7 +60,6 @@ export class QuizGateway {
     client.emit('joinedQuiz', participation);
   }
 
-  // This method is called when a user submits a quiz
   async updateScore(userId: string, quizId: string, score: number) {
     await this.redis.set(`score:${userId}:${quizId}`, score);
     this.redis.publish(
