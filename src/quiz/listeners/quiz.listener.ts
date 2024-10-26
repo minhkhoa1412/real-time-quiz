@@ -1,14 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { QuizService } from '../services/quiz.service';
-import { REDIS_CLIENT } from '~/ultilies/constants';
+import { REDIS_SUBSCRIBER_CLIENT } from '~/ultilies/constants';
 import Redis from 'ioredis';
 
 @Injectable()
 export class QuizListener {
   constructor(
     private readonly quizService: QuizService,
-    @Inject(REDIS_CLIENT) private readonly redis: Redis,
+    @Inject(REDIS_SUBSCRIBER_CLIENT) private readonly redis: Redis,
   ) {}
 
   @OnEvent('score.updated')

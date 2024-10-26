@@ -85,8 +85,6 @@ export class QuizService {
   }
 
   async findParticipation(userId: string, quizId: string) {
-    console.log('ahihihi', userId)
-    
     const user = await this.prismaService.user.findUnique({
       where: { id: userId },
     });
