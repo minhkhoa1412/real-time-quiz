@@ -7,8 +7,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('create')
-  createQuizId(@Body() createUserDto: CreateUserDto) {
-    const user = this.authService.createUser(createUserDto);
-    return { user };
+  async createUser(@Body() createUserDto: CreateUserDto) {
+    return await this.authService.createUser(createUserDto);
   }
 }

@@ -7,12 +7,12 @@ export class QuizController {
 
   @Get()
   async getAllQuizzes() {
-    return this.quizService.getAllQuizzes();
+    return await this.quizService.getAllQuizzes();
   }
 
   @Get(':quizId')
   async getQuizById(@Param('quizId') quizId: string) {
-    return this.quizService.getQuizById(quizId);
+    return await this.quizService.getQuizById(quizId);
   }
 
   @Post(':quizId/join')
@@ -20,7 +20,7 @@ export class QuizController {
     @Param('quizId') quizId: string,
     @Body('userId') userId: string,
   ) {
-    return this.quizService.addUserToQuiz(userId, quizId);
+    return await this.quizService.addUserToQuiz(userId, quizId);
   }
 
   @Post(':quizId/score')
@@ -29,6 +29,6 @@ export class QuizController {
     @Body('userId') userId: string,
     @Body('score') score: number,
   ) {
-    return this.quizService.updateScore(userId, quizId, score);
+    return await this.quizService.updateScore(userId, quizId, score);
   }
 }
