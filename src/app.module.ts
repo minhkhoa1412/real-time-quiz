@@ -7,6 +7,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { QuizListener } from './quiz/listeners/quiz.listener';
 import { QuizModule } from './quiz/quiz.module';
+import { LeaderboardModule } from './leaderboard/leaderboard.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { QuizModule } from './quiz/quiz.module';
     RedisModule,
     EventEmitterModule.forRoot(),
     QuizModule,
+    LeaderboardModule,
   ],
   controllers: [AppController],
   providers: [AppService, QuizListener],

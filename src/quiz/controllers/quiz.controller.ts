@@ -10,12 +10,16 @@ import {
 import { QuizService } from '../services/quiz.service';
 import { AuthGuard } from '~/common/auth.guard';
 import { QuizGateway } from '../gateway/quiz.gateway';
+import { LeaderboardService } from '~/leaderboard/services/leaderboard.service';
+import { LeaderboardGateway } from '~/leaderboard/gateway/leaderboard.gateway';
 
 @Controller('quiz')
 export class QuizController {
   constructor(
     private quizService: QuizService,
     private quizGateway: QuizGateway,
+    private leaderboardService: LeaderboardService,
+    private leaderboardGateway: LeaderboardGateway,
   ) {}
 
   @Get()
@@ -56,6 +60,12 @@ export class QuizController {
   ) {
     const userId = req.user.id;
     this.quizGateway.updateScore(userId, quizId, score);
+    const userRankInfo = await this.leaderboardService.getUserRank(
+      userId,
+      quizId,
+      score,
+    );
+    this.leaderboardGateway.emitLeaderboardUpdate(userRankInfo);
     return {
       message: 'Score updated',
     };

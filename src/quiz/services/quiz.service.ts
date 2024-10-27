@@ -1,5 +1,8 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { QuizParticipantStatus } from '@prisma/client';
+import { create } from 'domain';
+import { connect } from 'http2';
+import { update } from 'lodash';
 import { PrismaService } from '~/prisma/services/prisma.service';
 
 @Injectable()
@@ -24,19 +27,28 @@ export class QuizService {
   }
 
   async addUserToQuiz(userId: string, quizId: string) {
-    const participation = await this.getParticipant(userId, quizId);
+    let participation = await this.getParticipant(userId, quizId);
 
-    return this.prismaService.quizParticipation.upsert({
-      where: { id: participation.id },
-      create: {
-        user: { connect: { id: userId } },
-        quiz: { connect: { id: quizId } },
-        status: QuizParticipantStatus.ACTIVE,
-      },
-      update: {
-        status: QuizParticipantStatus.ACTIVE,
-      },
-    })
+    if (participation) {
+      participation = await this.prismaService.quizParticipation.update({
+        where: { id: participation.id },
+        data: {
+          status: QuizParticipantStatus.ACTIVE,
+        },
+        include: { user: true },
+      });
+    } else {
+      participation = await this.prismaService.quizParticipation.create({
+        data: {
+          user: { connect: { id: userId } },
+          quiz: { connect: { id: quizId } },
+          status: QuizParticipantStatus.ACTIVE,
+        },
+        include: { user: true },
+      });
+    }
+
+    return participation;
   }
 
   async completeTheQuiz(userId: string, quizId: string) {
