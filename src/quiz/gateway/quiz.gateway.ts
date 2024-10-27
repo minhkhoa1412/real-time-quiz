@@ -11,7 +11,11 @@ import { QuizService } from '../services/quiz.service';
 import { Inject } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Redis } from 'ioredis';
-import { REDIS_PUBLISHER_CLIENT, REDIS_SUBSCRIBER_CLIENT } from '~/ultilies/constants';
+import {
+  REDIS_PUBLISHER_CLIENT,
+  REDIS_SUBSCRIBER_CLIENT,
+} from '~/ultilies/constants';
+import { QuizParticipantStatus } from '@prisma/client';
 
 @WebSocketGateway({
   namespace: 'quiz',
@@ -41,33 +45,50 @@ export class QuizGateway implements OnModuleInit {
       }
     });
 
-    this.redisSubscriber.on('message', (channel, message) => {
+    this.redisSubscriber.subscribe('participantsUpdated', (err, count) => {
+      if (err) {
+        console.error('Failed to subscribe: %s', err.message);
+      } else {
+        console.log(
+          `Subscribed successfully! This client is currently subscribed to ${count} channels.`,
+        );
+      }
+    });
+
+    this.redisSubscriber.on('message', async (channel, message) => {
       if (channel === 'scoreUpdated') {
         const { userId, quizId, score } = JSON.parse(message);
         this.server.to(quizId).emit('scoreUpdated', { userId, quizId, score });
         this.eventEmitter.emit('score.updated', { userId, quizId, score });
       }
+      if (channel === 'participantsUpdated') {
+        const { userId, quizId, isJoining } = JSON.parse(message);
+        const participants = await this.quizService.getParticipant(
+          userId,
+          quizId,
+        );
+        this.server.to(quizId).emit('participantsUpdated', {
+          isJoining,
+          participants,
+        });
+      }
     });
   }
 
-  @SubscribeMessage('joinQuiz')
+  @SubscribeMessage('joinQuizRoom')
   async handleJoinQuiz(
     @MessageBody() data: { userId: string; quizId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const { userId, quizId } = data;
+    const { quizId } = data;
 
-    const participation = await this.quizService.findParticipation(
-      userId,
+    const activeParticipations = await this.quizService.getParticipants(
       quizId,
+      QuizParticipantStatus.ACTIVE,
     );
-    if (!participation) {
-      client.emit('error', 'Quiz participation not found');
-      return;
-    }
 
     client.join(quizId);
-    client.emit('joinedQuiz', participation);
+    client.emit('joinQuizRoom', activeParticipations);
   }
 
   async updateScore(userId: string, quizId: string, score: number) {
@@ -75,6 +96,13 @@ export class QuizGateway implements OnModuleInit {
     this.redisPublisher.publish(
       'scoreUpdated',
       JSON.stringify({ userId, quizId, score }),
+    );
+  }
+
+  async updateParticipant(userId: string, quizId: string, isJoining = true) {
+    this.redisPublisher.publish(
+      'participantsUpdated',
+      JSON.stringify({ userId, quizId, isJoining }),
     );
   }
 }

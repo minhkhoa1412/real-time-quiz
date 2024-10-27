@@ -24,30 +24,27 @@ export class QuizService {
   }
 
   async addUserToQuiz(userId: string, quizId: string) {
-    const participation = await this.findParticipation(userId, quizId);
+    const participation = await this.getParticipant(userId, quizId);
 
-    if (participation) {
-      return participation;
-      // return {
-      //   errorMessage: 'User already joined the quiz',
-      // };
-    }
-
-    return this.prismaService.quizParticipation.create({
-      data: {
+    return this.prismaService.quizParticipation.upsert({
+      where: { id: participation.id },
+      create: {
         user: { connect: { id: userId } },
         quiz: { connect: { id: quizId } },
         status: QuizParticipantStatus.ACTIVE,
       },
-    });
+      update: {
+        status: QuizParticipantStatus.ACTIVE,
+      },
+    })
   }
 
   async completeTheQuiz(userId: string, quizId: string) {
-    const participation = await this.findParticipation(userId, quizId);
+    const participation = await this.getParticipant(userId, quizId);
     if (!participation) {
       return {
         errorMessage: 'User has not joined the quiz',
-      }
+      };
     }
 
     return this.prismaService.quizParticipation.update({
@@ -84,7 +81,7 @@ export class QuizService {
     return { message: 'Score updated successfully', participation };
   }
 
-  async findParticipation(userId: string, quizId: string) {
+  async getParticipant(userId: string, quizId: string) {
     const user = await this.prismaService.user.findUnique({
       where: { id: userId },
     });
@@ -100,6 +97,28 @@ export class QuizService {
         userId,
         quizId,
       },
+      include: { user: true },
     });
+  }
+
+  async getParticipants(
+    quizId: string,
+    status: QuizParticipantStatus = QuizParticipantStatus.ACTIVE,
+  ) {
+    const quiz = await this.prismaService.quiz.findUnique({
+      where: { id: quizId },
+      include: {
+        participants: {
+          where: { status },
+          include: { user: true },
+        },
+      },
+    });
+
+    if (!quiz) {
+      throw new HttpException('Quiz not found', HttpStatus.NOT_FOUND);
+    }
+
+    return quiz.participants;
   }
 }

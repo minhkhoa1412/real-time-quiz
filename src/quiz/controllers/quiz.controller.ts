@@ -33,14 +33,18 @@ export class QuizController {
   @Post(':quizId/join')
   async joinQuiz(@Param('quizId') quizId: string, @Req() req: any) {
     const userId = req.user.id;
-    return await this.quizService.addUserToQuiz(userId, quizId);
+    const participant = await this.quizService.addUserToQuiz(userId, quizId);
+    this.quizGateway.updateParticipant(userId, quizId, true);
+    return participant;
   }
 
   @UseGuards(AuthGuard)
   @Post(':quizId/complete')
   async completeQuiz(@Param('quizId') quizId: string, @Req() req: any) {
     const userId = req.user.id;
-    return await this.quizService.completeTheQuiz(userId, quizId);
+    const participant = await this.quizService.completeTheQuiz(userId, quizId);
+    this.quizGateway.updateParticipant(userId, quizId, false);
+    return participant;
   }
 
   @UseGuards(AuthGuard)
